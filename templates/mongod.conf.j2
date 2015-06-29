@@ -1,7 +1,13 @@
 # mongo.conf
 smallfiles={{ mongod_smallfiles }}
 
-#where to log
+# location of pidfile
+pidfilepath = {{ mongod_datadir_prefix }}/mongod-{{ mongod_port }}/mongod.pid
+
+# Where to store the data
+dbpath={{ mongod_datadir_prefix }}/mongod-{{ mongod_port }}
+
+# where to log
 {% if ansible_os_family == "RedHat" %}
 logpath=/var/log/mongo/mongod-{{ mongod_port }}.log
 # fork and run in background
@@ -15,21 +21,73 @@ fork = false
 
 logappend=true
 
-
 port = {{ mongod_port }}
 
-dbpath={{ mongod_datadir_prefix }}/mongo-{{ mongod_port }}
-keyFile={{ mongod_datadir_prefix }}/secret
+# Listen to local interface only. Comment out to listen on all interfaces. 
+# bind_ip = 127.0.0.1
 
-# location of pidfile
-pidfilepath = {{ mongod_datadir_prefix }}/mongod_{{ mongod_port }}.pid
+# Disables write-ahead journaling
+# nojournal = true
 
+# Enables periodic logging of CPU utilization and I/O wait
+#cpu = true
 
-# Ping interval for Mongo monitoring server.
-#mms-interval = <seconds>
+# Turn on/off security.  Off is currently the default
+
+{% if mongod_auth %}
+auth = true
+{% else %}
+noauth = true
+{% endif %}
+
+# Verbose logging output.
+#verbose = true
+
+# Inspect all client data for validity on receipt (useful for
+# developing drivers)
+#objcheck = true
+
+# Enable db quota management
+#quota = true
+
+# Set oplogging level where n is
+#   0=off (default)
+#   1=W
+#   2=R
+#   3=both
+#   7=W+some reads
+#diaglog = 0
+
+# Ignore query hints
+#nohints = true
+
+# Enable the HTTP interface (Defaults to port 28017).
+#httpinterface = true
+
+# Turns off server-side scripting.  This will result in greatly limited
+# functionality
+#noscripting = true
+
+# Turns off table scans.  Any query that would do a table scan fails.
+#notablescan = true
+
+# Disable data file preallocation.
+#noprealloc = true
+
+# Specify .ns file size for new databases.
+# nssize = <size>
 
 # Replication Options
 {% if mongod_replication %}
 replSet={{ mongod_replset_name | default(mongod_port) }}
 {% endif %}
 
+# maximum size in megabytes for replication operation log
+#oplogSize=1024
+
+{% if mongod_auth %}
+keyFile={{ mongod_datadir_prefix }}/mongod-{{ mongod_port }}/secret
+{% endif %}
+
+# Ping interval for Mongo monitoring server.
+#mms-interval = <seconds>

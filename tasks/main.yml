@@ -6,28 +6,28 @@
   include_vars: "{{ ansible_os_family }}.yml"
 
 - name: Install the apt key for ubuntu
-  apt_key: id=7F0CEB10 url="http://docs.mongodb.org/10gen-gpg-key.asc"
+  apt_key: id=7F0CEB10 keyserver="keyserver.ubuntu.com" state=present
   when: ansible_os_family == "Debian"
 
 - name: Install the python pycurl library
   apt: name=python-pycurl state=installed update_cache=yes
   when: ansible_os_family == "Debian"
 
+- name: Get dist name
+  shell: "lsb_release -sc"
+  register: debian_version
+  when: ansible_os_family == "Debian"
+
 - name: Install the repository for Ubuntu mongodb
-  apt_repository: repo="deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen" state=present
+  apt_repository: repo="deb http://repo.mongodb.org/apt/{{ ansible_os_family|lower }} {{ debian_version.stdout }}/mongodb-org/3.0 main" state=present
   when: ansible_os_family == "Debian"
   
 - name: Install the libselinux module
   yum: name=libselinux-python state=installed
   when: ansible_os_family == "RedHat"
 
-- name: Create the repository for 10Gen
-  copy: src=10gen.repo dest=/etc/yum.repos.d/10gen.repo
-  when: ansible_os_family == "RedHat"
-
-- name: Create the EPEL Repository.
-  copy: src=epel.repo dest=/etc/yum.repos.d/epel.repo
-  when: ansible_os_family == "RedHat"
+- name: update apt cache
+  apt: update_cache=yes 
 
 - name: Create the mongod user
   user: name={{ mongo_user }} comment="MongoD"
@@ -37,6 +37,15 @@
 
 - name: Create the data directory for the mongod
   file: path={{ mongod_datadir_prefix }} owner={{ mongo_user }} group={{ mongo_group }} state=directory
+  when: mongod_use_link is not defined
+
+- name: Create source directory for the data directory link for the mongod
+  file: path={{ mongod_link_to }} owner={{ mongo_user }} group={{ mongo_group }} state=directory
+  when: mongod_use_link is defined
+
+- name: Create link for the data directory for the mongod
+  file: path={{ mongod_datadir_prefix }} owner={{ mongo_user }} group={{ mongo_group }} state=link src={{ mongod_link_to }}
+  when: mongod_use_link is defined
 
 - name: Install the mongodb package
   yum: name={{ item }} state=installed
@@ -48,33 +57,70 @@
   with_items: mongod_pkgs
   when: ansible_os_family == "Debian"
 
-- name: create data directory for mongodb
-  file: path={{ mongod_datadir_prefix }}/mongo-{{ mongod_port }} state=directory owner={{ mongo_user }} group={{ mongo_group }}
+- name: create base data directory for mongodb
+  file: path={{ mongod_datadir_prefix }}/mongod-{{ mongod_port }} state=directory owner={{ mongo_user }} group={{ mongo_group }}
 
-- name: Create the mongodb startup file for Rhel
-  template: src=mongod.j2 dest=/etc/init.d/mongod-{{ mongod_port }} mode=0655
+- name: Stop the mongodb service for redhat variants
+  command: /etc/init.d/mongod-{{ mongod_port }} stop
+  ignore_errors: true
   when: ansible_os_family == "RedHat"
 
-- name: Create the mongodb startup file for Debian
-  template: src=mongod_debian_init.j2 dest=/etc/init/mongodb-{{ mongod_port }}.conf mode=0655
+- name: Stop the mongodb service for Ubuntu variants
+  service: name=mongod state=stopped
+  ignore_errors: true
   when: ansible_os_family == "Debian"
 
-- name: Create the mongodb configuration file
-  template: src=mongod.conf.j2 dest=/etc/mongod-{{ mongod_port }}.conf
+- name: remove the default mongodb configuration file
+  file: path=/etc/mongod.conf state=absent
+
+- name: remove the default mongodb init file
+  file: path=/etc/init.d/mongod state=absent
+  when: ansible_os_family == "Debian"
+
+- name: clean out the source directory 
+  file: path={{ mongod_datadir_prefix }}/mongod-{{mongod_port }}/{{ item }} state=absent
+  with_items:
+    - journal
+    - mongod.lock 
 
 - name: Generate the keyfile for authentication
   set_fact: mongod_secret_key="{{ lookup('password', 'secret length=256 chars=ascii_letters,digits') }}"
 
 - name: Copy the keyfile for authentication
-  copy: src=secret dest={{ mongod_datadir_prefix }}/secret owner={{ mongo_user }} group={{ mongo_group }} mode=0400
+  copy: src=secret dest={{ mongod_datadir_prefix }}/mongod-{{ mongod_port}}/secret owner={{ mongo_user }} group={{ mongo_group }} mode=0400
 
-- name: Start the mongodb service for redhat variants
+- name: set auth to false before users added
+  command: /bin/false
+  register: mongod_auth
+  ignore_errors: True
+
+- name: create the user JS to create root user
+  template: src=user.j2 dest=/tmp/user.js
+  
+- name: Create the mongodb configuration file
+  template: src=mongod.conf.j2 dest=/etc/mongod-{{ mongod_port }}.conf
+
+- name: Create the mongodb init file for Debian
+  template: src=mongod_debian_init.j2 dest=/etc/init.d/mongod-{{ mongod_port }} mode=755
+  when: ansible_os_family == "Debian"
+
+- name: Enable mongod-{{ mongod_port }} service  
+  command: "{{ item }}"
+  with_items:
+    - update-rc.d mongod-{{ mongod_port }} defaults
+    - update-rc.d mongod-{{ mongod_port }} enable 
+  when: ansible_os_family == "Debian"
+
+- name: Start the mongodb service for redhat variants to add root user
   command: creates=/var/lock/subsys/mongod-{{ mongod_port }} /etc/init.d/mongod-{{ mongod_port }} start
   when: ansible_os_family == "RedHat"
 
-- name: Start the mongodb service for Ubuntu variants
-  service: name=mongodb-{{ mongod_port }} state=started
+- name: Start the mongodb service for Ubuntu variants to add root user
+  service: name=mongod-{{ mongod_port }} state=started
   when: ansible_os_family == "Debian"
+
+- name: Add root user
+  shell: "/usr/bin/mongo --port {{ mongod_port }} admin /tmp/user.js"
 
 - name: Create the file to initialize the mongod replica set
   template: src=repset_init.j2 dest=/tmp/repset_init.js
@@ -87,3 +133,29 @@
 - name: Initialize the replication set
   shell: /usr/bin/mongo --port "{{ mongod_port }}" /tmp/repset_init.js 
   when: mongod_replication and (mongod_repl_master == inventory_hostname or mongod_repl_master == ansible_hostname)
+
+- name: Stop the mongodb service for redhat variants after adding root user
+  command: creates=/var/lock/subsys/mongod-{{ mongod_port }} /etc/init.d/mongod-{{ mongod_port }} stop
+  when: ansible_os_family == "RedHat"
+
+- name: Stop the mongodb service for Ubuntu variants after adding root user
+  service: name=mongod-{{ mongod_port }} state=stopped
+  when: ansible_os_family == "Debian"
+
+- name: set auth to true after users added
+  command: /bin/true
+  register: mongod_auth
+
+- name: regenerate the mongodb configuration file
+  template: src=mongod.conf.j2 dest=/etc/mongod-{{ mongod_port }}.conf
+
+- name: Start the mongodb service for redhat variants
+  command: creates=/var/lock/subsys/mongod-{{ mongod_port }} /etc/init.d/mongod-{{ mongod_port }} start
+  when: ansible_os_family == "RedHat"
+
+- name: Start the mongodb service for Ubuntu variants
+  service: name=mongod-{{ mongod_port }} state=started
+  when: ansible_os_family == "Debian"
+
+- name: remove user creation file
+  file: path=/tmp/user.js state=absent

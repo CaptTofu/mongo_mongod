@@ -1,8 +1,12 @@
 ---
 
 mongod_pkgs:
+  - mongodb-org
+  - mongodb-org-server
+  - mongodb-org-shell
+  - mongodb-org-mongos
+  - mongodb-org-tools
   - python-selinux
-  - mongodb-10gen
   - python-pymongo
 mongo_user: mongodb
 mongo_group: mongodb

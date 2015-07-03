@@ -2,19 +2,19 @@
 smallfiles={{ mongod_smallfiles }}
 
 # location of pidfile
-pidfilepath = {{ mongod_datadir_prefix }}/mongod-{{ mongod_port }}/mongod.pid
+pidfilepath = {{ mongod_datadir_prefix }}/mongod.pid
 
 # Where to store the data
-dbpath={{ mongod_datadir_prefix }}/mongod-{{ mongod_port }}
+dbpath={{ mongod_datadir_prefix }}
 
 # where to log
 {% if ansible_os_family == "RedHat" %}
-logpath=/var/log/mongo/mongod-{{ mongod_port }}.log
+logpath=/var/log/mongo/mongod.log
 # fork and run in background
 fork = true
 {% endif %}
 {% if ansible_os_family == "Debian" %}
-logpath=/var/log/mongodb/mongod-{{ mongod_port }}.log
+logpath=/var/log/mongodb/mongod.log
 # fork and run in background
 fork = false
 {% endif %}
@@ -78,7 +78,7 @@ noauth = true
 # nssize = <size>
 
 # Replication Options
-{% if mongod_replication %}
+{% if mongod_replication and mongod_auth %}
 replSet={{ mongod_replset_name | default(mongod_port) }}
 {% endif %}
 
@@ -86,7 +86,7 @@ replSet={{ mongod_replset_name | default(mongod_port) }}
 #oplogSize=1024
 
 {% if mongod_auth %}
-keyFile={{ mongod_datadir_prefix }}/mongod-{{ mongod_port }}/secret
+keyFile={{ mongod_datadir_prefix }}/secret
 {% endif %}
 
 # Ping interval for Mongo monitoring server.

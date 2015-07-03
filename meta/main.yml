@@ -8,11 +8,12 @@ galaxy_info:
    - name: EL
      versions:
       - 6
-   - name: Ubuntu
+   - name: Ubuntu_Debian
      versions:
       - precise
       - quantal
       - raring
+      - wheezy
   categories:
    - database:nosql
 dependencies: []

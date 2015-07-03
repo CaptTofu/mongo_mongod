@@ -15,7 +15,7 @@ export LC_ALL="C"
 
 # NOTE: if you change any OPTIONS here, you get what you pay for:
 # this script assumes all options are in the config file.
-CONFIGFILE="/etc/mongod-{{ mongod_port }}.conf"
+CONFIGFILE="/etc/mongod.conf"
 OPTIONS=" -f $CONFIGFILE"
 SYSCONFIG="/etc/sysconfig/mongod"
 
@@ -26,8 +26,8 @@ DBPATH=`awk -F= '/^dbpath=/{print $2}' "$CONFIGFILE"`
 PIDFILE=`awk -F= '/^dbpath\s=\s/{print $2}' "$CONFIGFILE"`
 mongod=${MONGOD-/usr/bin/mongod}
 
-MONGO_USER=mongod
-MONGO_GROUP=mongod
+MONGO_USER=mongodb
+MONGO_GROUP=mongodb
 
 if [ -f "$SYSCONFIG" ]; then
     . "$SYSCONFIG"
@@ -49,7 +49,7 @@ start()
   daemon --user "$MONGO_USER" $NUMACTL $mongod $OPTIONS
   RETVAL=$?
   echo
-  [ $RETVAL -eq 0 ] && touch /var/lock/subsys/mongod-{{ mongod_port }}
+  [ $RETVAL -eq 0 ] && touch /var/lock/subsys/mongod
 }
 
 stop()
@@ -58,7 +58,7 @@ stop()
   killproc -p "$PIDFILE" -d 300 /usr/bin/mongod
   RETVAL=$?
   echo
-  [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/mongod-{{ mongod_port }}
+  [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/mongod
 }
 
 restart () {

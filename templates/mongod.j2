@@ -5,8 +5,8 @@
 # chkconfig: 35 85 15
 # description: Mongo is a scalable, document-oriented database.
 # processname: mongod
-# config: /etc/mongod.conf
-# pidfile: /var/run/mongo/mongod.pid
+# config: /etc/{{ mongo_type }}.conf
+# pidfile: /var/run/mongo/{{ mongo_type }}.pid
 
 . /etc/rc.d/init.d/functions
 
@@ -15,14 +15,16 @@ export LC_ALL="C"
 
 # NOTE: if you change any OPTIONS here, you get what you pay for:
 # this script assumes all options are in the config file.
-CONFIGFILE="/etc/mongod.conf"
+CONFIGFILE="/etc/{{ mongo_type }}.conf"
 OPTIONS=" -f $CONFIGFILE"
 SYSCONFIG="/etc/sysconfig/mongod"
 
 # FIXME: 1.9.x has a --shutdown flag that parses the config file and
 # shuts down the correct running pid, but that's unavailable in 1.8
 # for now.  This can go away when this script stops supporting 1.8.
+{% if mongo_type == 'mongod' or mongo_type == 'mongo_cs' %}
 DBPATH=`awk -F= '/^dbpath=/{print $2}' "$CONFIGFILE"`
+{% endif %}
 PIDFILE=`awk -F= '/^dbpath\s=\s/{print $2}' "$CONFIGFILE"`
 mongod=${MONGOD-/usr/bin/mongod}
 
@@ -45,20 +47,20 @@ fi
 
 start()
 {
-  echo -n $"Starting mongod: "
+  echo -n $"Starting {{ mongo_type }}: "
   daemon --user "$MONGO_USER" $NUMACTL $mongod $OPTIONS
   RETVAL=$?
   echo
-  [ $RETVAL -eq 0 ] && touch /var/lock/subsys/mongod
+  [ $RETVAL -eq 0 ] && touch /var/lock/subsys/{{ mongo_type }}
 }
 
 stop()
 {
-  echo -n $"Stopping mongod: "
+  echo -n $"Stopping {{ mongo_type }}: "
   killproc -p "$PIDFILE" -d 300 /usr/bin/mongod
   RETVAL=$?
   echo
-  [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/mongod
+  [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/{{ mongo_type }}
 }
 
 restart () {
@@ -80,7 +82,7 @@ case "$1" in
     restart
     ;;
   condrestart)
-    [ -f /var/lock/subsys/mongod ] && restart || :
+    [ -f /var/lock/subsys/{{ mongo_type }} ] && restart || :
     ;;
   status)
     status $mongod

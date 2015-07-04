@@ -5,8 +5,14 @@
 - name: install mongo 
   include: install.yml tags=install
 
+- name: configure config server 
+  include: configure_config_server.yml tags=configure_config_server
+
 - name: configure mongo 
   include: configure.yml tags=configure
+
+- name: configure mongos servers
+  include: configure_mongos.yml tags=configure_mongos
 
 - name: add shards
   include: shards.yml tags=add_shards

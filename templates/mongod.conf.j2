@@ -2,21 +2,23 @@
 smallfiles={{ mongod_smallfiles }}
 
 # location of pidfile
-pidfilepath = {{ mongod_datadir_prefix }}/mongod.pid
+pidfilepath = {{ mongod_datadir_prefix }}/{{ mongo_type }}.pid
 
 # Where to store the data
-dbpath={{ mongod_datadir_prefix }}
+dbpath={{ mongod_datadir_prefix }}/{{ mongo_type }}
 
 # where to log
+{% if mongo_type != "mongos" %}
 {% if ansible_os_family == "RedHat" %}
-logpath=/var/log/mongo/mongod.log
+logpath=/var/log/mongo/{{ mongo_type }}.log
 # fork and run in background
 fork = true
 {% endif %}
 {% if ansible_os_family == "Debian" %}
-logpath=/var/log/mongodb/mongod.log
+logpath=/var/log/mongodb/{{ mongo_type }}.log
 # fork and run in background
 fork = false
+{% endif %}
 {% endif %}
 
 logappend=true
@@ -26,6 +28,9 @@ port = {{ mongod_port }}
 # Listen to local interface only. Comment out to listen on all interfaces. 
 # bind_ip = 127.0.0.1
 
+{% if mongo_type == 'mongos' %}
+configdb = {{ mongod_repl_servers|join(":27019,") }}
+{% endif %}
 # Disables write-ahead journaling
 # nojournal = true
 
@@ -86,7 +91,7 @@ replSet={{ mongod_replset_name | default(mongod_port) }}
 #oplogSize=1024
 
 {% if mongod_auth %}
-keyFile={{ mongod_datadir_prefix }}/secret
+keyFile={{ mongod_datadir_prefix }}/{{ mongo_type }}/secret
 {% endif %}
 
 # Ping interval for Mongo monitoring server.

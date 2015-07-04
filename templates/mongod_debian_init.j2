@@ -47,7 +47,11 @@
 ### END INIT INFO
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+{% if mongo_type == 'mongos' %}
+DAEMON=/usr/bin/mongos
+{% else %}
 DAEMON=/usr/bin/mongod
+{% endif %}
 DESC=database
 
 NAME={{ mongo_type }}
@@ -55,7 +59,7 @@ NAME={{ mongo_type }}
 # Other configuration options are located in $CONF file. See here for more:
 # http://dochub.mongodb.org/core/configurationoptions
 CONF=/etc/{{ mongo_type }}.conf
-PIDFILE=/var/run/$NAME.pid
+PIDFILE={{ mongod_datadir_prefix }}/{{ mongo_type}}/$NAME.pid
 ENABLE_MONGOD=yes
 
 # Include {{ mongo_type }} defaults if available

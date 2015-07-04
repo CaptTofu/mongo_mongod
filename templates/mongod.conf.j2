@@ -1,14 +1,6 @@
 # mongo.conf
-smallfiles={{ mongod_smallfiles }}
-
-# location of pidfile
-pidfilepath = {{ mongod_datadir_prefix }}/{{ mongo_type }}.pid
-
-# Where to store the data
-dbpath={{ mongod_datadir_prefix }}/{{ mongo_type }}
 
 # where to log
-{% if mongo_type != "mongos" %}
 {% if ansible_os_family == "RedHat" %}
 logpath=/var/log/mongo/{{ mongo_type }}.log
 # fork and run in background
@@ -16,12 +8,24 @@ fork = true
 {% endif %}
 {% if ansible_os_family == "Debian" %}
 logpath=/var/log/mongodb/{{ mongo_type }}.log
+logappend=true
 # fork and run in background
 fork = false
 {% endif %}
+
+{% if mongo_type != "mongos" %}
+# Where to store the data
+dbpath={{ mongod_datadir_prefix }}/{{ mongo_type }}
+smallfiles={{ mongod_smallfiles }}
 {% endif %}
 
-logappend=true
+{% if ansible_os_family == "Debian" %}
+# pid file commented out on debian because init script handles it 
+# pidfilepath = {{ mongod_datadir_prefix }}/{{ mongo_type }}/{{ mongo_type }}.pid
+{% else %}
+# location of pidfile
+pidfilepath = {{ mongod_datadir_prefix }}/{{ mongo_type }}/{{ mongo_type }}.pid
+{% endif %}
 
 port = {{ mongod_port }}
 
@@ -29,7 +33,7 @@ port = {{ mongod_port }}
 # bind_ip = 127.0.0.1
 
 {% if mongo_type == 'mongos' %}
-configdb = {{ mongod_repl_servers|join(":27019,") }}
+configdb = {{ mongod_config_servers|join(',') }}
 {% endif %}
 # Disables write-ahead journaling
 # nojournal = true
@@ -39,10 +43,12 @@ configdb = {{ mongod_repl_servers|join(":27019,") }}
 
 # Turn on/off security.  Off is currently the default
 
+{% if mongo_type != 'mongos' %}
 {% if mongod_auth %}
 auth = true
 {% else %}
 noauth = true
+{% endif %}
 {% endif %}
 
 # Verbose logging output.
@@ -82,16 +88,19 @@ noauth = true
 # Specify .ns file size for new databases.
 # nssize = <size>
 
+{% if mongo_type == 'mongod' %}
 # Replication Options
 {% if mongod_replication and mongod_auth %}
 replSet={{ mongod_replset_name | default(mongod_port) }}
+{% endif %}
 {% endif %}
 
 # maximum size in megabytes for replication operation log
 #oplogSize=1024
 
 {% if mongod_auth %}
-keyFile={{ mongod_datadir_prefix }}/{{ mongo_type }}/secret
+# keyFile={{ mongod_datadir_prefix }}/{{ mongo_type }}/secret
+keyFile={{ mongod_datadir_prefix }}/secret
 {% endif %}
 
 # Ping interval for Mongo monitoring server.

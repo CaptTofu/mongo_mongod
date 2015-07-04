@@ -1,10 +1,16 @@
 ---
 
+- name: set fact mongod_auth=true
+  set_fact: mongod_auth=true
+
 - name: set fact mongo_type=mongos
   set_fact: mongo_type=mongos
 
-- name: set fact mongod_port=mongos_port
-  set_fact: mongod_port=mongos_port
+- name: Create config server data directory
+  file: path="{{ mongod_datadir_prefix }}/{{ mongo_type }}" owner=mongodb group=mongodb state=directory
+
+- name: set fact mongod_port="{{ mongos_port }}"
+  set_fact: mongod_port="{{ mongos_port }}"
 
 - name: Create the mongos init file for Debian
   template: src=mongod_debian_init.j2 dest=/etc/init.d/mongos mode=755
@@ -20,8 +26,34 @@
 - name: generate the mongos configuration file
   template: src=mongod.conf.j2 dest=/etc/mongos.conf
 
-- name: Start the mongodb service for redhat variants
+- name: create the user JS to create root user
+  template: src=user.j2 dest=/tmp/user.js
+
+- name: Start the mongos service for redhat variants to add root user
   command: creates=/var/lock/subsys/mongos /etc/init.d/mongos start
+  when: ansible_os_family == "RedHat"
+
+- name: Start the mongos service for Ubuntu variants to add root user
+  service: name=mongos state=started
+  when: ansible_os_family == "Debian"
+
+#- name: Add root user
+#  shell: "/usr/bin/mongo --port {{ mongod_port }} admin /tmp/user.js"
+
+#- name: set fact mongod_auth=true
+#  set_fact: mongod_auth=true
+
+#- name: re-generate the mongos configuration file with auth turned on
+#  template: src=mongod.conf.j2 dest=/etc/mongos.conf
+
+#- name: Generate the keyfile for authentication
+#  set_fact: mongod_secret_key="{{ lookup('password', 'secret length=256 chars=ascii_letters,digits') }}"
+
+#- name: Copy the keyfile for mongo_cs authentication
+#  copy: src=secret dest={{ mongod_datadir_prefix }}/{{ mongo_type }}/secret owner=mongodb group=mongodb mode=0400
+
+- name: Start the mongos service for redhat variants
+  command: creates=/var/lock/subsys/mongos /etc/init.d/mongos restart
   when: ansible_os_family == "RedHat"
 
 - name: Start the mongos service for Ubuntu variants

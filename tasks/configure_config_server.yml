@@ -1,11 +1,11 @@
 ---
-
+# 
 - name: set fact mongo_type=mongo_cs
   set_fact: mongo_type=mongo_cs
-
+ 
 - name: set mongo_cs port
   set_fact: mongod_port="{{ mongo_cs_port }}"
-
+ 
 - name: Create config server data directory
   file: path="{{ mongod_datadir_prefix }}/{{ mongo_type }}" owner=mongodb group=mongodb state=directory
 
@@ -43,12 +43,18 @@
 - name: Add root user
   shell: "/usr/bin/mongo --port {{ mongo_cs_port }} admin /tmp/user.js"
 
-- name: Copy the keyfile for mongo_cs authentication
-  copy: src=secret dest={{ mongo_datadir_prefix }}/{{ mongo_type }}/secret owner=mongodb group=mongodb mode=0400
+#- name: Generate the keyfile for authentication
+#  set_fact: mongod_secret_key="{{ lookup('password', 'secret length=256 chars=ascii_letters,digits') }}"
+
+#- name: Copy the keyfile for mongo_cs authentication
+#  copy: src=secret dest={{ mongod_datadir_prefix }}/{{ mongo_type }}/secret owner=mongodb group=mongodb mode=0400
 
 - name: set auth to true after users added
   set_fact: 
     mongod_auth: true
+
+- name: generate the mongo config server configuration file
+  template: src=mongod.conf.j2 dest=/etc/mongo_cs.conf
 
 - name: Start the mongo_cs service for redhat variants
   command: creates=/var/lock/subsys/mongo_cs /etc/init.d/mongo_cs start
@@ -58,5 +64,5 @@
   service: name=mongo_cs state=restarted
   when: ansible_os_family == "Debian"
 
-- name: Pause for 60 
-  pause: seconds=60
+- name: Pause for 40 
+  pause: seconds=40

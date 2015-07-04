@@ -6,7 +6,7 @@
   include: install.yml tags=install
 
 - name: configure config server 
-  include: configure_config_server.yml tags=configure_config_server
+  include: configure_config_server.yml tags=configure_cs
 
 - name: configure mongo 
   include: configure.yml tags=configure
@@ -16,3 +16,6 @@
 
 - name: add shards
   include: shards.yml tags=add_shards
+
+- name: uninstall mongo 
+  include: uninstall.yml tags=uninstall

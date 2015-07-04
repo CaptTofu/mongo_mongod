@@ -12,24 +12,32 @@
   ignore_errors: true
   when: ansible_os_family == "Debian"
 
-- name: Generate the keyfile for authentication
-  set_fact: mongod_secret_key="{{ lookup('password', 'secret length=256 chars=ascii_letters,digits') }}"
-
-- name: Copy the keyfile for authentication
-  copy: src=secret dest={{ mongod_datadir_prefix }}/secret owner=mongodb group=mongodb mode=0400
-
-- name: create the user JS to create root user
-  template: src=user.j2 dest=/tmp/user.js
-  
 - name: set auth to false before users added
   set_fact: 
     mongod_auth: false
 
+- name: set mongo_type=mongod
+  set_fact:
+    mongo_type: mongod
+
+- name: Create config server data directory
+  file: path="{{ mongod_datadir_prefix }}/{{ mongo_type }}" owner=mongodb group=mongodb state=directory
+
+- name: Generate the keyfile for authentication
+  set_fact: mongod_secret_key="{{ lookup('password', 'secret length=256 chars=ascii_letters,digits') }}"
+
+- name: Copy the keyfile for authentication
+# copy: src=secret dest={{ mongod_datadir_prefix }}/{{ mongo_type }}/secret owner=mongodb group=mongodb mode=0400
+  copy: src=secret dest={{ mongod_datadir_prefix }}/secret owner=mongodb group=mongodb mode=0400
+
+- name: create the user JS to create root user
+  template: src=user.j2 dest=/tmp/user.js
+
 - name: set fact mongo_type=mongod
   set_fact: mongo_type=mongod
 
-- name: set fact mongod_port=mongod_port
-  set_fact: mongod_port=mongod_port
+- name: set fact mongod_port="{{ mongod_port }}"
+  set_fact: mongod_port="{{ mongod_port }}"
 
 - name: Create the mongodb init file for Debian
   template: src=mongod_debian_init.j2 dest=/etc/init.d/mongod mode=755
@@ -49,8 +57,8 @@
   command: creates=/var/lock/subsys/mongod /etc/init.d/mongod start
   when: ansible_os_family == "RedHat"
 
-- name: Start the mongos service for Ubuntu variants to add root user
-  service: name=mongos state=restarted
+- name: Restart the mongodb service for Ubuntu variants
+  service: name=mongod state=restarted
   when: ansible_os_family == "Debian"
 
 - name: Pause for a 50 secs to ensure mongo is running

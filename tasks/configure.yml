@@ -57,7 +57,7 @@
 - name: Pause for a 60 secs to ensure mongo is running
   pause: seconds=60
 
-- name: Add root user
+- name: Add root user to admin db
   shell: "/usr/bin/mongo --port {{ mongod_port }} admin /tmp/user.js"
 
 - name: Create the file to initialize the mongod replica set

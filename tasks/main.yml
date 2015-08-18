@@ -2,19 +2,25 @@
 
 # top-level
 
-- name: install mongo 
-  include: install.yml tags=install
+- name: install mongo base packages
+  include: install_base.yml tags=install_base
+
+- name: server pre install
+  include: server_pre_install.yml tags=server_pre_install
+
+- name: install server 
+  include: install_server.yml tags=install_server
 
 - name: create key
   include: keygen.yml tags=keygen
 
-- name: configure mongo 
+- name: configure mongod main server 
   include: configure.yml tags=configure
 
 - name: configure config server 
   include: configure_cs.yml tags=configure_cs
 
-- name: configure mongos servers
+- name: configure mongos server
   include: configure_mongos.yml tags=configure_mongos
 
 - name: add shards

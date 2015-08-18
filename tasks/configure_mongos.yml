@@ -26,21 +26,10 @@
 - name: generate the mongos configuration file
   template: src=mongod.conf.j2 dest=/etc/mongos.conf
 
-- name: create the user JS to create root user
-  template: src=user.j2 dest=/tmp/user.js
-
-- name: Start the mongos service for redhat variants to add root user
+- name: Start the mongos service for redhat variants
   command: creates=/var/lock/subsys/mongos /etc/init.d/mongos start
   when: ansible_os_family == "RedHat"
 
-- name: Start the mongos service for Ubuntu variants to add root user
+- name: Start the mongos service for Ubuntu variants 
   service: name=mongos state=started
-  when: ansible_os_family == "Debian"
-
-- name: Start the mongos service for redhat variants
-  command: creates=/var/lock/subsys/mongos /etc/init.d/mongos restart
-  when: ansible_os_family == "RedHat"
-
-- name: Start the mongos service for Ubuntu variants
-  service: name=mongos state=restarted
   when: ansible_os_family == "Debian"

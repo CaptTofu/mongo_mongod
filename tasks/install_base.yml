@@ -1,0 +1,41 @@
+---
+
+# installs everything but the server (clients,etc)
+
+- name: Add the OS specific varibles
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Get dist name
+  shell: "lsb_release -sc"
+  register: debian_version
+  when: ansible_os_family == "Debian"
+
+- name: Install the apt key for ubuntu
+  apt_key: id=7F0CEB10 keyserver="keyserver.ubuntu.com" state=present
+  when: ansible_os_family == "Debian"
+
+- name: Install the python pycurl library
+  apt: name=python-pycurl state=installed update_cache=yes
+  when: ansible_os_family == "Debian"
+
+- name: Install the libselinux module
+  yum: name=libselinux-python state=installed
+  when: ansible_os_family == "RedHat"
+
+- name: update apt cache
+  apt: update_cache=yes 
+  when: ansible_os_family == "Debian"
+
+- name: Install the repository for Ubuntu mongodb
+  apt_repository: repo="deb http://repo.mongodb.org/apt/{{ ansible_os_family|lower }} {{ debian_version.stdout }}/mongodb-org/3.0 main" state=present
+  when: ansible_os_family == "Debian"
+
+- name: Install the mongodb base RPM packages
+  yum: name={{ item }} state=installed
+  with_items: mongo_base_pkgs
+  when: ansible_os_family == "RedHat"
+
+- name: Install the mongodb base APT packages
+  apt: name={{ item }} state=installed update_cache=yes
+  with_items: mongo_base_pkgs
+  when: ansible_os_family == "Debian"

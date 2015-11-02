@@ -59,7 +59,7 @@ NAME={{ mongo_type }}
 # Other configuration options are located in $CONF file. See here for more:
 # http://dochub.mongodb.org/core/configurationoptions
 CONF=/etc/{{ mongo_type }}.conf
-PIDFILE={{ mongod_datadir_prefix }}/{{ mongo_type}}/$NAME.pid
+PIDFILE={{ mongod_datadir_prefix }}$NAME.pid
 ENABLE_MONGOD=yes
 
 # Include {{ mongo_type }} defaults if available
@@ -154,8 +154,7 @@ stop_server() {
 # Stop the process using the wrapper
             start-stop-daemon --stop --quiet --pidfile $PIDFILE \
                         --retry 300 \
-                        --user $DAEMONUSER \
-                        --exec $DAEMON
+                        --user $DAEMONUSER
             errcode=$?
 	return $errcode
 }

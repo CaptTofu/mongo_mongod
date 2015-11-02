@@ -4,18 +4,28 @@
 
 - name: install mongo base packages
   include: install_base.yml tags=install_base
+  tags: 
+    - server_only
 
 - name: server pre install
   include: server_pre_install.yml tags=server_pre_install
+  tags: 
+    - server_only
 
 - name: install server 
   include: install_server.yml tags=install_server
+  tags: 
+    - server_only
 
 - name: create key
   include: keygen.yml tags=keygen
+  tags: 
+    - server_only
 
 - name: configure mongod main server 
   include: configure.yml tags=configure
+  tags: 
+    - server_only
 
 - name: configure config server 
   include: configure_cs.yml tags=configure_cs

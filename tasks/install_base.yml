@@ -15,8 +15,11 @@
   when: ansible_os_family == "Debian"
 
 - name: Install the python pycurl library
-  apt: name=python-pycurl state=installed update_cache=yes
+  apt: name="{{ item }}" state=installed update_cache=yes
   when: ansible_os_family == "Debian"
+  with_items:
+  - python-pycurl
+  - numactl
 
 - name: Install the libselinux module
   yum: name=libselinux-python state=installed

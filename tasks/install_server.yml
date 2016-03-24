@@ -11,11 +11,11 @@
   when: ansible_os_family == "Debian"
 
 - name: Install the mongodb server RPM package
-  yum: name={{ item }} state=installed
-  with_items: mongo_server_pkgs
+  yum: name="{{ item }}" state=installed
+  with_items: "{{ mongo_server_pkgs }}"
   when: ansible_os_family == "RedHat"
 
 - name: Install the mongodb server APT package
-  apt: name={{ item }} state=installed update_cache=yes
-  with_items: mongo_server_pkgs
+  apt: name="{{ item }}" state=installed update_cache=yes
+  with_items: "{{ mongo_server_pkgs }}"
   when: ansible_os_family == "Debian"

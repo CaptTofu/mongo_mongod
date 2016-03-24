@@ -3,7 +3,7 @@
 # top-level
 
 - name: install mongo base packages
-  include: mongod.yml tags: server-only
+  include: mongod.yml 
 
 - name: configure config server 
   include: configure_cs.yml tags=configure-cs
